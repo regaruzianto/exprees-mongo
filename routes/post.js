@@ -43,7 +43,7 @@ router.post('/', middleware.authenticateToken,
             image : req.body.image ? req.body.image : "",
         });
         await post.save();
-        return res.json(post);
+        return res.status(201).json(post);
     }catch(err){
         return res.status(500).json({ message : err.message});
     }
@@ -72,6 +72,9 @@ router.get('/postId/:id', middleware.validate([
 
     try{
         const post = await Post.findById(req.params.id);
+        if(!post){
+            return res.status(404).json({messag : 'Post not found, Invalid postId' })
+        }
         return res.json(post);
 
     }catch(err){
@@ -101,6 +104,7 @@ router.delete('/deletebypostId/:id', middleware.validate([
         return res.status(500).json({ message : err.message});
     }
 });
+
 
 
 
