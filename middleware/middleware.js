@@ -11,13 +11,20 @@ const getUser = async (req,res,next) => {
     try{
         user = await User.findById(req.params.userId);
         if (!user) {
-            return res.status(404).json({message :"User not found"}); 
+            return res.status(404).json({
+                status : 'error',
+                message :"User not found"
+            }); 
         }
     }
     catch(err){
-        return res.status(500).json({message: err.message});
+        console.log(err);
+        return res.status(500).json({
+            status : 'error',
+            message: 'Internal server error - Failed to get user',
+        });
     }
-    req.targetUser =user;
+    req.targetUser = user;
     next();
 };
 
@@ -27,7 +34,10 @@ const validate = (validations) => {
         for ( const validation of validations ){
             const result = await validation.run(req);
             if(!result.isEmpty()){
-                return res.status(400).json({ error: result.array()});
+                return res.status(400).json({ 
+                    status : 'error',
+                    message : "Validation failed",
+                    error: result.array()});
             }
         }
         next();
@@ -35,19 +45,34 @@ const validate = (validations) => {
 };
 
 // verify token middleware
-const authenticateToken = (req,res,next) => {
+const authenticateToken = async (req,res,next) => {
 
     const token = req.header("Authorization")?.split(" ")[1];// Format: Bearer <token>
     if(!token){
-        return res.status(401).json({message : "Unauthorized"});
+        return res.status(401).json({
+            status : 'error',
+            message : "Unauthorized - Token is missing",
+        });
     };
     try {
         const verified = jwt.verify(token, process.env.SECRET_KEY);
-        req.user = verified;
-        req.userId = verified.id;
+
+        const user = await User.findById(verified.id);
+        if(!user){
+            return res.status(404).json({
+                status : 'error',
+                message : 'User Not Found'
+            });
+        };
+
+        req.user = user;
         next();
     }catch(err){
-        return res.status(401).json({message : "Invalid Token"});
+        console.log(err);
+        return res.status(401).json({
+            status : 'error',
+            message : "Unauthorized - Invalid Token"
+        });
     }
 }
 
