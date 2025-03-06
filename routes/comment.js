@@ -4,6 +4,7 @@ const router = express.Router();
 const middleware = require('../middleware/middleware');
 const {body, param } = require('express-validator');
 const User = require("../models/userModel");
+const Post = require("../models/postModel");
 
 
 
@@ -33,7 +34,7 @@ router.get('/post/:postId', middleware.validate([
     
     try{
         const comments = await Comment.find({ postId : req.params.postId}).populate('userId', "name profilePic _id").lean();
- 
+        
         return res.status(200).json({
             status : 'success',
             message : 'Data successfully retrieved',
@@ -111,6 +112,7 @@ router.post('/postcomment/:postId', middleware.validate([
 
     })
     try{
+        await Post.findOneAndUpdate({ _id : req.params.postId}, { $inc : { commentsCount : 1}});
         await comment.save();
         return res.status(201).json({
             status : 'success',
@@ -136,7 +138,8 @@ router.delete('/deletecomment/:commentId', middleware.validate([
             return res.status(404).json({ 
                 staus : 'error',
                 message : "User's comment not found"});
-        }
+        };
+        await Post.findOneAndUpdate({ _id : comment.postId}, { $inc : { commentsCount : -1}});
         await comment.deleteOne();
         return res.status(200).json({ 
             status : 'success',

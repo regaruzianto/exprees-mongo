@@ -81,7 +81,20 @@ router.post('/following/:userId', middleware.validate([
             followingId : req.params.userId,
             followerId : req.user.id,
         });
+
         await follow.save();
+        //update user followingCount
+        await User.findOneAndUpdate(
+            { _id : req.user.id}, 
+            {$inc : {followingCount : 1}},
+            { new : true}
+        );
+        //update followingUser followerCount
+        await User.findOneAndUpdate({ _id : req.params.userId}, 
+            {$inc : { followersCount : 1}},
+            {new : true}
+        );
+
         return res.status(201).json({
             status : 'success',
             message : 'successfully follow',
@@ -110,6 +123,16 @@ router.delete('/unfollow/:userId', middleware.validate([
                 message : 'Follow not found'
             });
         }
+        await User.findOneAndUpdate(
+            { _id : req.user.id}, 
+            { $inc : {followingCount : -1}},
+            { new : true}
+        );
+        await User.findOneAndUpdate(
+            { _id : req.params.userId},
+            { $inc : { followersCount : -1}},
+            { new : true } 
+        );
         await follow.deleteOne();
         return res.status(200).json({
             status : 'success',
